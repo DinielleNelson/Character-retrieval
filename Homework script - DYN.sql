@@ -94,65 +94,78 @@ ORDER BY last_name;
 SELECT title FROM film
 WHERE title LIKE 'K%' OR 'Q%' AND language_id IN (
 	SELECT language_id FROM language
-    WHERE name = "English")
+    WHERE name = "English");
+
+-- * 7b. Use subqueries to display all actors who appear in the film `Alone Trip`.
+SELECT first_name, last_name FROM actor
+WHERE actor_id IN (
+	SELECT actor_id FROM film_actor
+    WHERE film_id IN (
+		SELECT film_id FROM film
+        WHERE title = 'Alone Trip')
+	)
 ;
 
-/*
-* 7b. Use subqueries to display all actors who appear in the film `Alone Trip`.
+-- * 7c. Need the names and email addresses of all Canadian customers. Use joins to retrieve this information.
+SELECT first_name, last_name, email FROM customer
+INNER JOIN address USING (address_id)
+INNER JOIN city USING (city_id)
+INNER JOIN country USING (country_id)
+WHERE country = 'Canada';
 
-* 7c. You want to run an email marketing campaign in Canada, for which you will need the names and email addresses of all Canadian customers. Use joins to retrieve this information.
+-- * 7d. Identify all movies categorized as _family_ films.
+SELECT title FROM film
+WHERE film_id IN (
+	SELECT film_id FROM film_category
+    WHERE category_id IN (
+		SELECT category_id FROM category
+        WHERE name = 'Family')
+	)
+;
 
-* 7d. Sales have been lagging among young families, and you wish to target all family movies for a promotion. Identify all movies categorized as _family_ films.
+-- * 7e. Display the most frequently rented movies in descending order.
+SELECT title, COUNT(rental_id) AS 'No. of Rentals' FROM film
+INNER JOIN inventory USING (film_id)
+INNER JOIN rental USING (inventory_id)
+GROUP BY title
+ORDER BY COUNT(rental_id) DESC;
 
-* 7e. Display the most frequently rented movies in descending order.
+-- * 7f. Write a query to display how much business, in dollars, each store brought in.
+SELECT store_id AS 'Store #', SUM(payment.amount) AS 'TOTAL REVENUE' FROM staff
+INNER JOIN payment USING (staff_id)
+GROUP BY store_id;
 
-* 7f. Write a query to display how much business, in dollars, each store brought in.
+--  * 7g. Write a query to display for each store its store ID, city, and country.
+SELECT store_id, city.city, country.country FROM store
+INNER JOIN address USING (address_id)
+INNER JOIN city USING (city_id)
+INNER JOIN country USING (country_id);
 
-* 7g. Write a query to display for each store its store ID, city, and country.
+-- * 7h. List the top five genres in gross revenue in descending order. 
+-- There will be overlap because movies are in more than one genre, but only paid for once. All genres added up will NOT be the sum of all rentals.
+SELECT name AS 'Genre', SUM(payment.amount) AS 'Gross Revenue' FROM category
+INNER JOIN film_category USING (category_id)
+INNER JOIN inventory USING (film_id)
+INNER JOIN rental USING (inventory_id)
+INNER JOIN payment USING (rental_id)
+GROUP BY category.name
+ORDER BY SUM(payment.amount) DESC
+LIMIT 5;
 
-* 7h. List the top five genres in gross revenue in descending order. (**Hint**: you may need to use the following tables: category, film_category, inventory, payment, and rental.)
+-- * 8a. From the problem above, create a view.
+CREATE VIEW top_5_genres AS
+	SELECT name AS 'Genre', SUM(payment.amount) AS 'Gross Revenue' FROM category
+	INNER JOIN film_category USING (category_id)
+	INNER JOIN inventory USING (film_id)
+	INNER JOIN rental USING (inventory_id)
+	INNER JOIN payment USING (rental_id)
+	GROUP BY category.name
+	ORDER BY SUM(payment.amount) DESC
+	LIMIT 5
+;
 
-* 8a. In your new role as an executive, you would like to have an easy way of viewing the Top five genres by gross revenue. Use the solution from the problem above to create a view. If you haven't solved 7h, you can substitute another query to create a view.
+-- * 8b. How would you display the view that you created in 8a?
+SELECT * FROM top_5_genres;
 
-* 8b. How would you display the view that you created in 8a?
-
-* 8c. You find that you no longer need the view `top_five_genres`. Write a query to delete it.
-
-## Appendix: List of Tables in the Sakila DB
-
-* A schema is also available as `sakila_schema.svg`. Open it with a browser to view.
-
-```sql
-'actor'
-'actor_info'
-'address'
-'category'
-'city'
-'country'
-'customer'
-'customer_list'
-'film'
-'film_actor'
-'film_category'
-'film_list'
-'film_text'
-'inventory'
-'language'
-'nicer_but_slower_film_list'
-'payment'
-'rental'
-'sales_by_film_category'
-'sales_by_store'
-'staff'
-'staff_list'
-'store'
-```
-
-## Uploading Homework
-
-* To submit this homework using BootCampSpot:
-
-  * Create a GitHub repository.
-  * Upload your .sql file with the completed queries.
-  * Submit a link to your GitHub repo through BootCampSpot.
-*/
+-- * 8c. You find that you no longer need the view `top_five_genres`. Write a query to delete it.
+DROP VIEW top_5_genres;
